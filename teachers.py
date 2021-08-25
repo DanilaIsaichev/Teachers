@@ -2,9 +2,9 @@ from openpyxl import load_workbook
 import os
 
 try:
-# Загрузка файла
+    # Загрузка файла
     wb = load_workbook('mega.xlsx')
-# Получение листа через его имя
+    # Получение листа через его имя
     sheet_name = wb.sheetnames[0]
     sheet = wb[sheet_name]
 except FileNotFoundError:
@@ -111,7 +111,7 @@ while row_numb <= sheet.max_row:
                             teacher[i] = '1 год'  # Стаж в 1 год
                         break
 
-                    # Сиаж меньше года
+                    # Стаж меньше года
                     elif k in ['м', 'д']:
                         teacher[i] = 'Меньше года'
                         break
@@ -152,8 +152,6 @@ while row_numb <= sheet.max_row:
             file.write('creator: admin\n')
             file.close
             print(' - готово!\n')
-
-
 
         # Очистка словаря
         for i in params:

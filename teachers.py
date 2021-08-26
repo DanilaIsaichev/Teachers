@@ -8,7 +8,7 @@ try:
     sheet_name = wb.sheetnames[0]
     sheet = wb[sheet_name]
 except FileNotFoundError:
-    print('Файл "mega.xlsx" не найден\nНажмите Enter, чтобы закончить...')
+    print('Файл "mega.xlsx" не найден\n\nНажмите Enter, чтобы закончить...')
     input()
     exit()
 
@@ -166,4 +166,5 @@ while row_numb <= sheet.max_row:
 
     row_numb += 1  # Шаг по строкам
 
-print('Всё готово!')
+print('Всё готово!\n\nНажмите Enter, чтобы закончить...')
+input()

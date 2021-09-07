@@ -116,13 +116,11 @@ while teachers_row_numb <= teacher_sheet.max_row:
                         teacher[i] = str(teacher[i]) + ' года'
                     elif teacher[i] % 10 == 1:
                         teacher[i] = str(teacher[i]) + ' год'
-                    print(teacher[i])
                     break
 
                 # Стаж меньше года
                 elif k in ['м', 'д']:
                     teacher[i] = ' меньше года'
-                    print(teacher[i])
                     break
         else:  # Получение остальной информации
             teacher[i] = teacher_sheet.cell(teachers_row_numb, teacher_numbers[i]).value

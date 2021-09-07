@@ -2,7 +2,7 @@ from openpyxl import load_workbook
 import os
 import re
 
-# Словарь для номеров столбцов с данными
+# Словарь для номеров столбцов с основными данными
 teacher_numbers = {
     'Фамилия': None,
     'Имя': None,
@@ -18,6 +18,7 @@ teacher_numbers = {
     'Образовательное учреждение': None,
 }
 
+# Словарь для номеров столбцов с данными о курсах повышения квалификации
 courses_numbers = {
     'ОООД повышения квалификации (полное наименование)': None,
     'Название курса': None,
@@ -25,7 +26,20 @@ courses_numbers = {
     'Дата выдачи': None
 }
 
-# Словарь для вывода информации о сотрудниках
+# Словарь с членами администрации: ключ - фамилия, значение - номер для отображения на сайте
+headmaster = {
+    'kozyrev': '01.',
+    'voznaya': '02.',
+    'sidorova': '03.',
+    'okova': '04.',
+    'pekarskaya': '05.',
+    'vishnyakova': '06.',
+    'butorina': '07.',
+    'aksyutin': '08.',
+    'stepanov': '09.'
+}
+
+# Словарь для вывода основной информации о сотрудниках
 teacher = {
     'Фамилия': None,
     'Имя': None,
@@ -40,7 +54,7 @@ teacher = {
     'Педагогический стаж': None,
     'Образовательное учреждение': None,
 }
-
+# Словарь для вывода информации о курсах повышения квалификации
 courses = {
     'ОООД повышения квалификации (полное наименование)': [],
     'Название курса': [],
@@ -48,7 +62,7 @@ courses = {
     'Дата выдачи': []
 }
 
-try:
+try:  # Отлов ошибки связанной с отсутствием таблицы с основной информацией
     # Загрузка файла teachers.xlsx
     teacher_wb = load_workbook('teachers.xlsx')
     # Получение листа через его имя
@@ -68,7 +82,7 @@ for i in teacher_numbers:  # Шаг по столбцам
             break
         col_numb += 1  # Шаг по строкам
 
-try:
+try:  # Отлов ошибки связанной с отсутствием таблицы с информацией о курсах повышения квалификации
     # Загрузка файла courses.xlsx
     courses_wb = load_workbook('courses.xlsx')
     # Получение листа через его имя
@@ -141,25 +155,39 @@ while teachers_row_numb <= teacher_sheet.max_row:
         number += 1
     print(teacher['Фамилия'], end="")
 
+    # Проверка входит ли преподаватель в администрацию
+    if folder_name in headmaster.keys():
+        folder_name = headmaster[folder_name] + folder_name
+
     # Проверка наличия папки
     if os.path.exists('teachers_old/' + folder_name + '/teacher.md') or os.path.exists('teachers_old/' + folder_name + '/teacher.en.md'):
-        if os.path.exists('teachers_old/' + folder_name + '/teacher.en.md'):
+        if os.path.exists('teachers_old/' + folder_name + '/teacher.en.md') and not os.path.exists('teachers_old/' + folder_name + '/teacher.md'):
             os.rename('teachers_old/' + folder_name + '/teacher.en.md', 'teachers_old/' + folder_name + '/teacher.md')
+
         # Открытие файла
         file = open('teachers_old/' + folder_name + '/teacher.md', 'r', encoding="utf-8")
 
+        # taxonomy
         category = ''
-        class_chief = ''
         for line in file:
             if 'category' in line:
                 category = (re.sub('[^a-z]', '', next(file))).split()[0]
                 break
+
+        # class chief
+        class_chief = ''
         for line in file:
             if 'class_chief' in line:
                 class_chief = line
         file.close()
+
     # Создание папки
-    os.mkdir('teachers/' + folder_name)
+    try:
+        os.mkdir('teachers/' + folder_name)
+    except FileExistsError as e:
+        print('\nОшибка:', e)
+        input()
+        exit()
 
     # Открытие файла
     file = open('teachers/' + folder_name + '/teacher.md', 'w', encoding='utf-8')

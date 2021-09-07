@@ -1,5 +1,6 @@
 from openpyxl import load_workbook
 import os
+import re
 
 # Словарь для номеров столбцов с данными
 teacher_numbers = {
@@ -102,25 +103,26 @@ while teachers_row_numb <= teacher_sheet.max_row:
     for i in teacher_numbers:
         # Получение информации о стаже
         if i in ['Общий стаж', 'Педагогический стаж']:
-            experience = teacher_sheet.cell(teachers_row_numb, teacher_numbers[i]).value
+            if i is not None:
+                experience = teacher_sheet.cell(teachers_row_numb, teacher_numbers[i]).value
             for k in experience:
 
-                # Стаж от пяти лет
-                if k == 'л':
-                    teacher[i] = experience[:experience.find("л")] + ' лет'
-                    break
-
-                # Стаж от года до пяти лет
-                elif k == 'г':
-                    if int(experience[0]) > 1:
-                        teacher[i] = experience[:experience.find("г")] + ' года'  # Стаж больше года, но меньше пяти лет
-                    else:
-                        teacher[i] = '1 год'  # Стаж в 1 год
+                # Стаж не меньше года
+                if k in ['л', 'г']:
+                    teacher[i] = int(re.findall("\d+", experience)[0])
+                    if 5 <= teacher[i] <= 20 or 5 <= teacher[i] % 10 <= 9 or teacher[i] % 10 == 0:
+                        teacher[i] = str(teacher[i]) + ' лет'
+                    elif 2 <= teacher[i] % 10 <= 4:
+                        teacher[i] = str(teacher[i]) + ' года'
+                    elif teacher[i] % 10 == 1:
+                        teacher[i] = str(teacher[i]) + ' год'
+                    print(teacher[i])
                     break
 
                 # Стаж меньше года
                 elif k in ['м', 'д']:
-                    teacher[i] = 'Меньше года'
+                    teacher[i] = ' меньше года'
+                    print(teacher[i])
                     break
         else:  # Получение остальной информации
             teacher[i] = teacher_sheet.cell(teachers_row_numb, teacher_numbers[i]).value
@@ -135,45 +137,66 @@ while teachers_row_numb <= teacher_sheet.max_row:
 
     # Создание файла
     if teacher['Адрес электронной почты'] != '' and teacher['Адрес электронной почты'] is not None:
-        file_name = teacher['Адрес электронной почты'][:teacher['Адрес электронной почты'].find('@')]
+        folder_name = teacher['Адрес электронной почты'][:teacher['Адрес электронной почты'].find('@')]
     else:
-        file_name = 'teacher ' + str(number)
+        folder_name = 'teacher ' + str(number)
         number += 1
     print(teacher['Фамилия'], end="")
 
+    # Проверка наличия папки
+    if os.path.exists('teachers_old/' + folder_name + '/teacher.md') or os.path.exists('teachers_old/' + folder_name + '/teacher.en.md'):
+        if os.path.exists('teachers_old/' + folder_name + '/teacher.en.md'):
+            os.rename('teachers_old/' + folder_name + '/teacher.en.md', 'teachers_old/' + folder_name + '/teacher.md')
+        # Открытие файла
+        file = open('teachers_old/' + folder_name + '/teacher.md', 'r', encoding="utf-8")
+
+        category = ''
+        class_chief = ''
+        for line in file:
+            if 'category' in line:
+                category = (re.sub('[^a-z]', '', next(file))).split()[0]
+                break
+        for line in file:
+            if 'class_chief' in line:
+                class_chief = line
+        file.close()
     # Создание папки
-    try:
-        os.mkdir('teachers/' + file_name)
-    except FileExistsError:
-        print(' - папка уже существует, редактирую файл', end="")
+    os.mkdir('teachers/' + folder_name)
 
     # Открытие файла
-    file = open('teachers/' + file_name + '/' + file_name + '.md', 'w')
+    file = open('teachers/' + folder_name + '/teacher.md', 'w', encoding='utf-8')
 
     # Вывод основных данных об учителе
-    file.write(
-        'title: \'' + str(teacher['Фамилия']) + ' ' + str(teacher['Имя']) + ' ' + str(teacher['Отчество']) + '\'\n')
+    file.write('---\n')
+    file.write('title: \'' + str(teacher['Фамилия']) + ' ' + str(teacher['Имя']) + ' ' + str(teacher['Отчество']) + '\'\n')
     file.write('place_education: \'' + str(teacher['Образовательное учреждение']) + '\'\n')
     file.write('general_experience: \'' + str(teacher['Общий стаж']) + '\'\n')
+    if category != '':
+        file.write('taxonomy:\n    category:\n        - ' + category + '\n')
+        category = ''
+    if class_chief != '':
+        file.write(class_chief)
+        class_chief = ''
     file.write('position: \'' + str(teacher['Должность']) + '\'\n')
-    file.write('education: \'' + str(teacher['Образование']) + '\'\n')
-    file.write('category: \'' + str(teacher['Квалификационная категория по основной должности']) + '\'\n')
+    file.write('education: \'' + str(teacher['Образование']).capitalize() + ' образование\'\n')
+    file.write('category: \'' + str(teacher['Квалификационная категория по основной должности']).lower() + '\'\n')
     file.write('experience: \'' + str(teacher['Педагогический стаж']) + '\'\n')
     file.write('email: \'' + str(teacher['Адрес электронной почты']) + '\'\n')
     file.write('course: \n')
 
     # Вывод данных о курсах повышения квалификации
     while courses['ОООД повышения квалификации (полное наименование)']:
-        file.write('\t-\n')
-        file.write('\t\tplace: \'' + str(courses['ОООД повышения квалификации (полное наименование)'][0]) + '\'\n')
-        file.write('\t\ttitle: \'' + str(courses['Название курса'][0]) + '\'\n')
-        file.write('\t\thour: \'' + str(courses['Объем курса (часы)'][0]) + '\'\n')
-        file.write('\t\tdate: \'' + str(courses['Дата выдачи'][0]) + '\'\n')
+        file.write('    -\n')
+        file.write('        place: \'' + str(courses['ОООД повышения квалификации (полное наименование)'][0]) + '\'\n')
+        file.write('        title: \'' + str(courses['Название курса'][0]) + '\'\n')
+        file.write('        hour: \'' + str(courses['Объем курса (часы)'][0]) + '\'\n')
+        file.write('        date: \'' + str(courses['Дата выдачи'][0]) + '\'\n')
         del courses['ОООД повышения квалификации (полное наименование)'][0]
         del courses['Название курса'][0]
         del courses['Объем курса (часы)'][0]
         del courses['Дата выдачи'][0]
     file.write('creator: admin\n')
+    file.write('---\n')
 
     # Закрытие файла
     file.close()
